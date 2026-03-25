@@ -1,3 +1,6 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
 import { ChevronRight, Heart, MapPinned, Route } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -5,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { MapCanvas } from "@/features/map-home/MapCanvas";
 import { PlaceSearchBox } from "@/features/map-home/PlaceSearchBox";
+import type { NormalizedPlaceResult } from "@/lib/types/domain";
 
 const cityChips = ["도쿄", "오사카", "교토"];
 const saveStatuses = [
@@ -13,7 +17,64 @@ const saveStatuses = [
   { label: "즐겨찾기", count: 0 },
 ];
 
+interface SearchResponse {
+  items: NormalizedPlaceResult[];
+  meta: {
+    source: "fallback" | "google";
+    query: string;
+    city: string | null;
+    region: string | null;
+  };
+}
+
 export function MapHomePage() {
+  const [query, setQuery] = useState("");
+  const [selectedCity, setSelectedCity] = useState("도쿄");
+  const [results, setResults] = useState<NormalizedPlaceResult[]>([]);
+  const [searchSource, setSearchSource] = useState<"fallback" | "google">("fallback");
+  const [isSearching, setIsSearching] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const runSearch = useCallback(async (nextQuery: string, nextCity: string) => {
+    setIsSearching(true);
+    setError(null);
+
+    try {
+      const params = new URLSearchParams();
+
+      if (nextQuery.trim()) {
+        params.set("q", nextQuery.trim());
+      }
+
+      if (nextCity.trim()) {
+        params.set("city", nextCity.trim());
+      }
+
+      const response = await fetch(`/api/places/search?${params.toString()}`, {
+        method: "GET",
+      });
+
+      if (!response.ok) {
+        throw new Error("장소 검색 응답을 불러오지 못했습니다.");
+      }
+
+      const payload = (await response.json()) as SearchResponse;
+
+      setResults(payload.items);
+      setSearchSource(payload.meta.source);
+    } catch {
+      setResults([]);
+      setSearchSource("fallback");
+      setError("검색 결과를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
+    } finally {
+      setIsSearching(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void runSearch("", "도쿄");
+  }, [runSearch]);
+
   return (
     <main className="min-h-screen bg-[linear-gradient(180deg,#fffef8_0%,#f4f9ff_50%,#ffffff_100%)] px-4 py-6 text-slate-900 sm:px-6 lg:px-8">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
@@ -31,14 +92,34 @@ export function MapHomePage() {
             </div>
             <div className="flex flex-wrap gap-3">
               {cityChips.map((city) => (
-                <Button key={city} variant="secondary">
+                <Button
+                  key={city}
+                  variant={city === selectedCity ? "primary" : "secondary"}
+                  onClick={() => {
+                    setSelectedCity(city);
+                    void runSearch(query, city);
+                  }}
+                >
                   {city}
                 </Button>
               ))}
             </div>
           </div>
           <div className="mt-6">
-            <PlaceSearchBox />
+            <PlaceSearchBox
+              quickCities={cityChips}
+              query={query}
+              selectedCity={selectedCity}
+              isSearching={isSearching}
+              onQueryChange={setQuery}
+              onSearch={() => {
+                void runSearch(query, selectedCity);
+              }}
+              onQuickCitySearch={(city) => {
+                setSelectedCity(city);
+                void runSearch(query, city);
+              }}
+            />
           </div>
         </section>
 
@@ -80,7 +161,13 @@ export function MapHomePage() {
           </Card>
 
           <div className="grid gap-6">
-            <MapCanvas />
+            <MapCanvas
+              error={error}
+              isSearching={isSearching}
+              results={results}
+              searchSource={searchSource}
+              selectedCity={selectedCity}
+            />
 
             <div className="grid gap-4 md:grid-cols-2">
               <Card>
@@ -117,4 +204,3 @@ export function MapHomePage() {
     </main>
   );
 }
-
