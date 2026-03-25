@@ -98,9 +98,10 @@
 ### 주요 액션
 
 - Day별 보기
-- 순서 조정
+- itinerary item 추가
 - 짧은 메모 작성
-- 공유 링크 생성
+- 읽기 전용 공유 링크 생성
+- 생성된 공유 링크 복사
 
 ### 상태
 
@@ -118,6 +119,7 @@
 
 - 핀보드 컬렉션 + 루트 보드 혼합
 - 여행 제목 / 기간
+- 읽기 전용 배지와 공유 요약 카드
 - 저장 장소 하이라이트
 - 날짜별 itinerary
 - 짧은 메모
@@ -130,7 +132,7 @@
 ### 상태
 
 - valid share
-- invalid token
+- invalid token -> 404
 - inactive link
 
 ## 6. Auth Entry
@@ -151,3 +153,7 @@
 - login success
 - login failed
 
+### 구현 확정
+
+- 로그인 버튼은 `Google로 계속하기` 하나만 노출
+- redirect target은 `/auth/callback`
