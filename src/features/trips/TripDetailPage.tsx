@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { ArrowRight, CalendarDays, LockKeyhole } from "lucide-react";
+import { ArrowRight, CalendarDays, Copy, LockKeyhole, Share2 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { TripDayColumn } from "@/features/trips/TripDayColumn";
 import type {
@@ -30,6 +31,8 @@ export function TripDetailPage({
   const [days, setDays] = useState(tripDays);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [isGeneratingShareLink, setIsGeneratingShareLink] = useState(false);
 
   const totalPlaced = useMemo(
     () => days.reduce((sum, day) => sum + day.items.length, 0),
@@ -91,6 +94,60 @@ export function TripDetailPage({
       setError("일정 배치에 실패했습니다. 잠시 후 다시 시도해 주세요.");
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  async function handleCreateShareLink() {
+    if (!trip) {
+      return;
+    }
+
+    setIsGeneratingShareLink(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/trips/${trip.id}/share-links`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          tripId: trip.id,
+          permission: "read_only",
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("공유 링크 생성 실패");
+      }
+
+      const payload = (await response.json()) as {
+        shareLink?: { token: string };
+      };
+
+      if (!payload.shareLink?.token) {
+        throw new Error("공유 링크 응답이 비어 있습니다.");
+      }
+
+      const nextShareUrl =
+        typeof window === "undefined"
+          ? `/share/${payload.shareLink.token}`
+          : `${window.location.origin}/share/${payload.shareLink.token}`;
+      setShareUrl(nextShareUrl);
+    } catch {
+      setError("읽기 전용 공유 링크 생성에 실패했습니다. 잠시 후 다시 시도해 주세요.");
+    } finally {
+      setIsGeneratingShareLink(false);
+    }
+  }
+
+  async function handleCopyShareLink() {
+    if (!shareUrl) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+    } catch {
+      setError("공유 링크 복사에 실패했습니다. 직접 선택해서 복사해 주세요.");
     }
   }
 
@@ -171,6 +228,42 @@ export function TripDetailPage({
                 </div>
               </div>
             </div>
+          </div>
+          <div className="mt-6 flex flex-col gap-3 rounded-3xl border border-dashed border-slate-200 bg-slate-50/80 p-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-slate-800">읽기 전용 공유 링크</p>
+                <p className="text-sm leading-6 text-slate-500">
+                  여행은 기본 비공개입니다. 필요할 때만 명시적으로 링크를 만들고, 공유 페이지는
+                  읽기 전용으로만 열립니다.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <Button
+                  className="rounded-2xl"
+                  onClick={handleCreateShareLink}
+                  disabled={isGeneratingShareLink}
+                >
+                  <Share2 className="mr-2 size-4" />
+                  {isGeneratingShareLink ? "생성 중..." : "읽기 전용 링크 만들기"}
+                </Button>
+                {shareUrl ? (
+                  <Button
+                    variant="secondary"
+                    className="rounded-2xl"
+                    onClick={handleCopyShareLink}
+                  >
+                    <Copy className="mr-2 size-4" />
+                    링크 복사
+                  </Button>
+                ) : null}
+              </div>
+            </div>
+            {shareUrl ? (
+              <div className="rounded-2xl bg-white px-4 py-3 text-sm text-slate-700 ring-1 ring-slate-200">
+                {shareUrl}
+              </div>
+            ) : null}
           </div>
           {error ? (
             <div className="mt-5 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">

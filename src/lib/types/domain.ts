@@ -62,3 +62,13 @@ export interface TripDayRecord {
   createdAt?: string;
   items: ItineraryItemRecord[];
 }
+
+export interface ShareLinkRecord {
+  id: string;
+  tripId: string;
+  token: string;
+  permission: ShareLinkPermission;
+  createdBy: string;
+  createdAt: string;
+  expiresAt: string | null;
+}
