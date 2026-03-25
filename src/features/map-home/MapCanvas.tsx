@@ -1,0 +1,230 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Compass, MapPinned, Sparkles } from "lucide-react";
+
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { isGoogleMapsBrowserConfigured, loadGoogleMapsLibraries } from "@/lib/google-maps/load-script";
+import type { NormalizedPlaceResult } from "@/lib/types/domain";
+
+const CITY_CENTERS: Record<string, google.maps.LatLngLiteral> = {
+  도쿄: { lat: 35.6764, lng: 139.65 },
+  오사카: { lat: 34.6937, lng: 135.5023 },
+  교토: { lat: 35.0116, lng: 135.7681 },
+};
+
+interface MapCanvasProps {
+  error: string | null;
+  isSearching: boolean;
+  results: NormalizedPlaceResult[];
+  searchSource: "fallback" | "google";
+  selectedCity: string;
+}
+
+export function MapCanvas({
+  error,
+  isSearching,
+  results,
+  searchSource,
+  selectedCity,
+}: MapCanvasProps) {
+  const mapRef = useRef<HTMLDivElement | null>(null);
+  const mapInstanceRef = useRef<google.maps.Map | null>(null);
+  const markersRef = useRef<google.maps.Marker[]>([]);
+  const [mapReady, setMapReady] = useState(false);
+  const [mapError, setMapError] = useState<string | null>(null);
+
+  const hasGoogleMapsKey = isGoogleMapsBrowserConfigured();
+  const hasResults = results.length > 0;
+  const resultsToRender = useMemo(() => results.slice(0, 4), [results]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function renderMap() {
+      if (!mapRef.current || !hasGoogleMapsKey) {
+        setMapReady(false);
+        return;
+      }
+
+      try {
+        const libraries = await loadGoogleMapsLibraries();
+
+        if (!libraries || !mapRef.current || cancelled) {
+          return;
+        }
+
+        const fallbackCenter = CITY_CENTERS[selectedCity] ?? CITY_CENTERS.도쿄;
+        const firstPlace = results[0];
+        const center = firstPlace
+          ? { lat: firstPlace.latitude, lng: firstPlace.longitude }
+          : fallbackCenter;
+
+        if (!mapInstanceRef.current) {
+          mapInstanceRef.current = new libraries.Map(mapRef.current, {
+            center,
+            zoom: firstPlace ? 12 : 10,
+            disableDefaultUI: true,
+            clickableIcons: false,
+          });
+        }
+
+        const map = mapInstanceRef.current;
+        map.setCenter(center);
+        map.setZoom(firstPlace ? 12 : 10);
+
+        markersRef.current.forEach((marker) => marker.setMap(null));
+        markersRef.current = [];
+
+        if (results.length > 0) {
+          const bounds = new google.maps.LatLngBounds();
+
+          results.slice(0, 8).forEach((place) => {
+            const marker = new google.maps.Marker({
+              map,
+              position: { lat: place.latitude, lng: place.longitude },
+              title: place.name,
+            });
+
+            markersRef.current.push(marker);
+            bounds.extend(marker.getPosition() as google.maps.LatLng);
+          });
+
+          if (results.length > 1) {
+            map.fitBounds(bounds, 72);
+          }
+        }
+
+        setMapError(null);
+        setMapReady(true);
+      } catch {
+        if (!cancelled) {
+          setMapReady(false);
+          setMapError("Google Maps 로드에 실패해 fallback 화면으로 표시합니다.");
+        }
+      }
+    }
+
+    void renderMap();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [hasGoogleMapsKey, results, selectedCity]);
+
+  return (
+    <Card className="h-full min-h-[420px] overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(125,211,252,0.35),_transparent_40%),linear-gradient(180deg,#f8fafc_0%,#eef6ff_100%)]">
+      <CardHeader className="flex flex-row items-center justify-between gap-4">
+        <div>
+          <p className="text-sm font-medium text-sky-700">지도 캔버스</p>
+          <h2 className="mt-1 text-xl font-semibold text-slate-900">
+            일본 전역에서 저장할 장소를 찾으세요
+          </h2>
+        </div>
+        <div className="rounded-full bg-white/80 p-3 text-sky-600 shadow-sm">
+          <MapPinned className="size-5" />
+        </div>
+      </CardHeader>
+      <CardContent className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="min-h-[360px] overflow-hidden rounded-[28px] border border-white/70 bg-white/80">
+          {hasGoogleMapsKey ? (
+            <div ref={mapRef} className="h-full min-h-[360px] w-full" />
+          ) : (
+            <div className="flex h-full min-h-[360px] flex-col justify-between bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.25),_transparent_40%),linear-gradient(180deg,#f8fafc_0%,#eef6ff_100%)] p-6">
+              <div className="flex items-center gap-2 text-sm font-medium text-sky-700">
+                <Compass className="size-4" />
+                {selectedCity} 중심 fallback 지도
+              </div>
+              <div className="rounded-[24px] border border-dashed border-sky-200 bg-white/85 p-5 text-sm leading-7 text-slate-600">
+                브라우저용 Google Maps 키를 넣으면 실제 지도가 여기에 표시됩니다. 지금은
+                검색 결과와 quick city 흐름을 확인할 수 있도록 안전한 fallback 상태를
+                제공합니다.
+              </div>
+              <div className="grid gap-3 sm:grid-cols-3">
+                {Object.keys(CITY_CENTERS).map((city) => (
+                  <div
+                    key={city}
+                    className="rounded-2xl bg-white/90 px-4 py-3 text-sm font-medium text-slate-700 shadow-sm"
+                  >
+                    {city}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="flex min-h-[360px] flex-col gap-3 rounded-[28px] border border-white/70 bg-white/75 p-4 backdrop-blur">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-medium text-slate-500">저장 후보</p>
+              <h3 className="mt-1 text-lg font-semibold text-slate-950">
+                {selectedCity} 중심 추천 결과
+              </h3>
+            </div>
+            <Badge className={searchSource === "google" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}>
+              {searchSource === "google" ? "Google Places" : "Fallback"}
+            </Badge>
+          </div>
+
+          <div className="rounded-2xl bg-slate-50 px-4 py-3 text-xs leading-6 text-slate-600">
+            {isSearching
+              ? "장소를 찾는 중입니다..."
+              : hasResults
+                ? `저장 전에 장소 후보를 훑고, 로그인 후 내 라이브러리에 담을 수 있습니다.`
+                : "검색어 또는 주요 도시 버튼으로 일본 장소를 찾아보세요."}
+          </div>
+
+          {error || mapError ? (
+            <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+              {error ?? mapError}
+            </div>
+          ) : null}
+
+          <div className="flex-1 space-y-3">
+            {resultsToRender.map((place) => (
+              <div
+                key={place.providerPlaceId}
+                className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold text-slate-900">{place.name}</p>
+                      {place.primaryCategory ? (
+                        <Badge className="bg-sky-100 text-sky-700">{place.primaryCategory}</Badge>
+                      ) : null}
+                    </div>
+                    <p className="text-sm text-slate-500">
+                      {place.city} · {place.region}
+                    </p>
+                  </div>
+                  <Sparkles className="size-4 text-amber-500" />
+                </div>
+                <p className="mt-3 text-sm leading-6 text-slate-600">{place.formattedAddress}</p>
+                <Button variant="secondary" className="mt-4 w-full rounded-2xl">
+                  로그인 후 저장
+                </Button>
+              </div>
+            ))}
+
+            {!hasResults ? (
+              <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-6 text-sm leading-6 text-slate-500">
+                아직 표시할 검색 결과가 없습니다. 도쿄, 오사카, 교토 quick entry 또는 검색어로
+                탐색을 시작해 보세요.
+              </div>
+            ) : null}
+          </div>
+
+          <div className="text-xs leading-6 text-slate-500">
+            {mapReady
+              ? "실제 지도 위에 결과를 렌더링 중입니다."
+              : "지도 키가 없거나 fallback 모드여도 탐색 흐름은 그대로 확인할 수 있습니다."}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
