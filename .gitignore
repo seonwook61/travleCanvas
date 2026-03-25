@@ -10,4 +10,5 @@ coverage/
 .turbo/
 .vercel/
 .superpowers/
-
+playwright-report/
+test-results/
