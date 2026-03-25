@@ -1,10 +1,11 @@
-# trip-canvas API Spec Draft
+# trip-canvas API Spec
 
 ## 원칙
 
-- 현재 단계의 API는 `문서 초안`이며 실제 구현 계획에서 세부 인증, validation, 에러 모델을 구체화한다.
+- 현재 문서는 구현된 MVP foundation 기준이다.
 - 모든 write API는 인증이 필요하다.
 - 모든 trip 공유 조회 API는 읽기 전용이다.
+- 인증 제공자는 `Google OAuth only`다.
 
 ## 1. 장소 검색
 
@@ -19,14 +20,23 @@ Query:
 - `region`: optional region hint
 
 Response:
-- `places[]`
-  - `externalPlaceId`
+- `items[]`
+  - `providerPlaceId`
   - `name`
-  - `address`
-  - `lat`
-  - `lng`
-  - `cityName`
-  - `regionName`
+  - `formattedAddress`
+  - `latitude`
+  - `longitude`
+  - `city`
+  - `region`
+  - `countryCode`
+  - `primaryCategory?`
+  - `googleMapsUri?`
+  - `photoUrl?`
+- `meta`
+  - `source`: `google | fallback`
+  - `query`
+  - `city?`
+  - `region?`
 
 ## 2. 장소 저장
 
@@ -39,17 +49,22 @@ Auth:
 - required
 
 Request:
-- `externalPlaceId`
-- `sourceProvider`
-- `placeName`
-- `address`
-- `lat`
-- `lng`
+- `providerPlaceId`
+- `name`
+- `formattedAddress`
+- `latitude`
+- `longitude`
+- `city`
+- `region`
+- `countryCode`
+- `googleMapsUri?`
+- `photoUrl?`
+- `primaryCategory?`
 - `status`
 - `note?`
 
 Response:
-- `savedPlace`
+- `item`
 
 ### GET `/api/saved-places`
 
@@ -61,6 +76,9 @@ Auth:
 
 Query:
 - `status?`
+
+Response:
+- `items[]`
 
 ## 3. Trip 생성
 
@@ -76,7 +94,7 @@ Request:
 - `title`
 - `startDate`
 - `endDate`
-- `savedPlaceIds[]`
+- `selectedPlaceIds[]`
 
 Response:
 - `trip`
@@ -93,7 +111,7 @@ Auth:
 Response:
 - `trip`
 - `tripDays[]`
-- `itineraryItems[]`
+- `savedPlaces[]`
 
 ## 4. itinerary 배치
 
@@ -108,20 +126,10 @@ Auth:
 Request:
 - `tripDayId`
 - `savedPlaceId`
-- `sortOrder`
 - `note?`
 
-### PATCH `/api/itinerary-items/:itemId`
-
-목적:
-- 순서 또는 note를 수정한다.
-
-Auth:
-- required
-
-Request:
-- `sortOrder?`
-- `note?`
+Response:
+- `item`
 
 ## 5. 공유 링크
 
@@ -133,11 +141,18 @@ Request:
 Auth:
 - required
 
+Request:
+- `tripId`
+- `permission`: `read_only`
+
 Response:
 - `shareLink`
   - `token`
-  - `url`
+  - `tripId`
   - `permission`
+  - `createdBy`
+  - `createdAt`
+  - `expiresAt`
 
 ### GET `/api/shared/trips/:token`
 
@@ -148,8 +163,10 @@ Auth:
 - not required
 
 Response:
+- `shareLink`
 - `trip`
 - `tripDays[]`
-- `itineraryItems[]`
-- `savedPlacesSummary[]`
+- `savedPlaceHighlights[]`
 
+Invalid token:
+- `404 Not Found`
