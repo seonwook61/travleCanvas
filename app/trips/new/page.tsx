@@ -1,11 +1,11 @@
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { SavedPlacesPage } from "@/features/saved-places/SavedPlacesPage";
+import { TripCreatePage } from "@/features/trips/TripCreatePage";
 import { hasSupabasePublicEnv } from "@/lib/env";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { serializeSavedPlace } from "@/lib/trips/trip-utils";
 
-export default async function SavedPage() {
+export default async function TripCreateRoute() {
   if (!hasSupabasePublicEnv()) {
-    return <SavedPlacesPage authRequired items={[]} />;
+    return <TripCreatePage authRequired savedPlaces={[]} />;
   }
 
   const supabase = await createSupabaseServerClient();
@@ -14,7 +14,7 @@ export default async function SavedPage() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return <SavedPlacesPage authRequired items={[]} />;
+    return <TripCreatePage authRequired savedPlaces={[]} />;
   }
 
   const { data } = await supabase
@@ -24,9 +24,9 @@ export default async function SavedPage() {
     .order("created_at", { ascending: false });
 
   return (
-    <SavedPlacesPage
+    <TripCreatePage
       authRequired={false}
-      items={Array.isArray(data) ? data.map((row) => serializeSavedPlace(row)) : []}
+      savedPlaces={Array.isArray(data) ? data.map((row) => serializeSavedPlace(row)) : []}
     />
   );
 }
