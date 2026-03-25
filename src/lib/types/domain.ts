@@ -42,3 +42,23 @@ export interface TripRecord {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface ItineraryItemRecord {
+  id: string;
+  tripDayId: string;
+  savedPlaceId: string;
+  sortOrder: number;
+  note: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  savedPlace?: SavedPlaceRecord;
+}
+
+export interface TripDayRecord {
+  id: string;
+  tripId: string;
+  dayNumber: number;
+  tripDate: string;
+  createdAt?: string;
+  items: ItineraryItemRecord[];
+}

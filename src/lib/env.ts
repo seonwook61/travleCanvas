@@ -23,6 +23,13 @@ export function getSupabasePublicEnv() {
   };
 }
 
+export function hasSupabasePublicEnv() {
+  return Boolean(
+    process.env[REQUIRED_ENV_KEYS.supabaseUrl] &&
+      process.env[REQUIRED_ENV_KEYS.supabaseAnonKey],
+  );
+}
+
 export function getSupabaseServerEnv() {
   return {
     serviceRoleKey: readEnv(REQUIRED_ENV_KEYS.supabaseServiceRoleKey),
