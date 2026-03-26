@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: trip-canvas-env
+data:
+  NEXT_PUBLIC_SUPABASE_URL: "https://your-staging-project.supabase.co"
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: "replace-me"
+  NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: "replace-me"
+  NEXT_PUBLIC_SITE_URL: "https://trip-canvas-staging.example.com"

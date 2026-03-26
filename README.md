@@ -17,6 +17,7 @@ This repository now contains the first working MVP foundation:
 - account-wide saved places library
 - dated trip creation and light itinerary board
 - explicit read-only trip sharing
+- Docker / CI / Argo CD draft assets for staging delivery
 
 The current source of truth is the document set under `docs/` plus the implemented Next.js app:
 
@@ -52,10 +53,28 @@ pnpm exec playwright test
 pnpm build
 ```
 
+## Deployment Drafts
+
+The repository now includes the first deployment automation assets:
+
+- `Dockerfile`
+- `.github/workflows/ci.yml`
+- `deploy/base`
+- `deploy/overlays/staging`
+- `argocd/trip-canvas-staging.yaml`
+
+These are intentionally draft-level foundations for:
+
+- GitHub Actions CI on pull requests
+- GHCR image publishing on `main`
+- Kustomize-based staging manifests
+- Argo CD auto-sync for the staging overlay
+
 ## Next Step
 
-The next recommended step is final review and branch integration:
+The next recommended step is environment and cluster wiring:
 
-- review the feature branches in order
-- sync any remaining docs deltas after review feedback
-- merge the MVP foundation into `main`
+- set the GitHub repository default branch to `main`
+- add GitHub Actions secrets and environment protections
+- replace staging placeholder values in `deploy/overlays/staging`
+- connect the Argo CD application to the target cluster

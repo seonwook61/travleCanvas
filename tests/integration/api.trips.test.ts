@@ -127,13 +127,64 @@ describe("trips api", () => {
         }),
       }),
     }));
+    const itineraryLatestItem = {
+      maybeSingle: async () => ({
+        data: { sort_order: 2 },
+        error: null,
+      }),
+    };
+    const itinerarySelect = {
+      eq: vi.fn(() => ({
+        order: vi.fn(() => ({
+          limit: vi.fn(() => itineraryLatestItem),
+        })),
+      })),
+    };
+    const tripDaySingle = {
+      single: async () => ({
+        data: {
+          id: "ffab2bc9-f35c-4f54-9c3c-79342383deeb",
+          trip_id: "trip_1",
+        },
+        error: null,
+      }),
+    };
+    const savedPlaceSingle = {
+      single: async () => ({
+        data: { id: "98febca5-caf4-4904-8f0b-3f86b5a1e126" },
+        error: null,
+      }),
+    };
 
     requireUserMock.mockResolvedValueOnce({
       user: { id: "user_1" },
       supabase: {
         from: (table: string) => {
+          if (table === "trip_days") {
+            return {
+              select: vi.fn(() => ({
+                eq: vi.fn(() => ({
+                  eq: vi.fn(() => tripDaySingle),
+                })),
+              })),
+            };
+          }
+
+          if (table === "saved_places") {
+            return {
+              select: vi.fn(() => ({
+                eq: vi.fn(() => ({
+                  eq: vi.fn(() => savedPlaceSingle),
+                })),
+              })),
+            };
+          }
+
           if (table === "itinerary_items") {
-            return { insert: itineraryInsert };
+            return {
+              select: vi.fn(() => itinerarySelect),
+              insert: itineraryInsert,
+            };
           }
 
           return { insert: vi.fn() };
@@ -164,6 +215,12 @@ describe("trips api", () => {
 
     expect(response.status).toBe(201);
     expect(itineraryInsert).toHaveBeenCalledTimes(1);
+    expect(itineraryInsert).toHaveBeenCalledWith({
+      trip_day_id: "ffab2bc9-f35c-4f54-9c3c-79342383deeb",
+      saved_place_id: "98febca5-caf4-4904-8f0b-3f86b5a1e126",
+      sort_order: 3,
+      note: "첫날 오후에 가기",
+    });
     expect(payload.item?.savedPlaceId).toBe("98febca5-caf4-4904-8f0b-3f86b5a1e126");
     expect(payload.item?.note).toBe("첫날 오후에 가기");
   });
