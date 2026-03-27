@@ -32,3 +32,5 @@
 - staging cluster에 `argocd` namespace와 repo credential 연결
 - ingress class / hostname 정책 확인
 - staging용 Supabase / Google Maps 키 분리
+- `ghcr-credentials` imagePullSecret 생성
+- `trip-canvas-secrets`의 실제 staging 값 주입
