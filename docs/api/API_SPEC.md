@@ -170,3 +170,18 @@ Response:
 
 Invalid token:
 - `404 Not Found`
+
+## 6. Health check
+
+### GET `/api/health`
+
+목적:
+- 컨테이너와 ingress의 readiness / liveness probe 진입점으로 사용한다.
+
+Auth:
+- not required
+
+Response:
+- `status`: `ok`
+- `service`: `trip-canvas`
+- `timestamp`

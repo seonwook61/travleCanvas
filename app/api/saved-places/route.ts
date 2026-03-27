@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 
 import { AuthRequiredError, requireUser, unauthorizedJson } from "@/lib/auth/require-user";
+import { savedPlaceStatusValues } from "@/lib/types/domain";
 import { savedPlaceSchema } from "@/lib/validation/saved-place";
 
 function serializeSavedPlace(row: Record<string, unknown>) {
@@ -28,14 +29,27 @@ function serializeSavedPlace(row: Record<string, unknown>) {
   };
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const { supabase, user } = await requireUser();
+    const status = new URL(request.url).searchParams.get("status");
     const query = supabase
       .from("saved_places")
       .select("*")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
+
+    if (status) {
+      if (!savedPlaceStatusValues.includes(status as (typeof savedPlaceStatusValues)[number])) {
+        return NextResponse.json(
+          { error: "지원하지 않는 saved place status 필터입니다." },
+          { status: 400 },
+        );
+      }
+
+      query.eq("status", status);
+    }
+
     const { data, error } = await query;
 
     if (error) {

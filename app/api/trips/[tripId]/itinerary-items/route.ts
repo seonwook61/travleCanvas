@@ -10,15 +10,55 @@ export async function POST(
   { params }: { params: Promise<{ tripId: string }> },
 ) {
   try {
-    const { supabase } = await requireUser();
-    const payload = itineraryItemCreateSchema.parse(await request.json());
-    await params;
+    const [{ tripId }, { supabase, user }, rawPayload] = await Promise.all([
+      params,
+      requireUser(),
+      request.json(),
+    ]);
+    const payload = itineraryItemCreateSchema.parse(rawPayload);
+
+    const { data: tripDay, error: tripDayError } = await supabase
+      .from("trip_days")
+      .select("id, trip_id")
+      .eq("id", payload.tripDayId)
+      .eq("trip_id", tripId)
+      .single();
+
+    if (tripDayError || !tripDay) {
+      return NextResponse.json(
+        { error: "선택한 trip day를 찾지 못했습니다." },
+        { status: 404 },
+      );
+    }
+
+    const { data: savedPlace, error: savedPlaceError } = await supabase
+      .from("saved_places")
+      .select("id")
+      .eq("id", payload.savedPlaceId)
+      .eq("user_id", user.id)
+      .single();
+
+    if (savedPlaceError || !savedPlace) {
+      return NextResponse.json(
+        { error: "선택한 saved place를 찾지 못했습니다." },
+        { status: 404 },
+      );
+    }
+
+    const { data: latestItem } = await supabase
+      .from("itinerary_items")
+      .select("sort_order")
+      .eq("trip_day_id", payload.tripDayId)
+      .order("sort_order", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
     const { data, error } = await supabase
       .from("itinerary_items")
       .insert({
         trip_day_id: payload.tripDayId,
         saved_place_id: payload.savedPlaceId,
-        sort_order: 0,
+        sort_order: typeof latestItem?.sort_order === "number" ? latestItem.sort_order + 1 : 0,
         note: payload.note ?? null,
       })
       .select("*")
