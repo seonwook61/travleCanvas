@@ -41,3 +41,4 @@
 
 - `docs/deploy/STAGING_ENV_WIRING.md`
 - `docs/deploy/ENV_SOURCE_GUIDE.md`
+- `docs/deploy/DEFERRED_NEXT_STEPS.md`
