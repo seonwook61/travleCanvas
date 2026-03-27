@@ -12,7 +12,9 @@
 - `.github/workflows/ci.yml`
 - `deploy/base`
 - `deploy/overlays/staging`
+- `deploy/overlays/prod`
 - `argocd/trip-canvas-staging.yaml`
+- `argocd/trip-canvas-prod.yaml`
 
 ## 아직 사람이 채워야 하는 값
 
@@ -34,3 +36,8 @@
 - staging용 Supabase / Google Maps 키 분리
 - `ghcr-credentials` imagePullSecret 생성
 - `trip-canvas-secrets`의 실제 staging 값 주입
+
+## 운영 참고 문서
+
+- `docs/deploy/STAGING_ENV_WIRING.md`
+- `docs/deploy/ENV_SOURCE_GUIDE.md`

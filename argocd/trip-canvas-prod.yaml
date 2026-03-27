@@ -1,0 +1,17 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: trip-canvas-prod
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/seonwook61/travleCanvas.git
+    targetRevision: main
+    path: deploy/overlays/prod
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: trip-canvas-prod
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true

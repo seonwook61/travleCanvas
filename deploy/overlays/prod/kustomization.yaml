@@ -1,0 +1,28 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: trip-canvas-prod
+
+resources:
+  - ../../base
+  - namespace.yaml
+  - configmap.yaml
+  - secret.yaml
+  - ingress.yaml
+
+images:
+  - name: ghcr.io/seonwook61/travlecanvas
+    newTag: release-placeholder
+
+patches:
+  - target:
+      kind: Deployment
+      name: trip-canvas
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 2
+      - op: add
+        path: /spec/template/spec/imagePullSecrets
+        value:
+          - name: ghcr-credentials

@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: trip-canvas-env
+data:
+  # Replace with the production Supabase project's public URL.
+  NEXT_PUBLIC_SUPABASE_URL: "https://your-production-project.supabase.co"
+  # Replace with the production Supabase publishable / anon key.
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: "replace-me"
+  # Replace with the production Google Maps browser key.
+  NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: "replace-me"
+  # Replace with the externally reachable production host.
+  NEXT_PUBLIC_SITE_URL: "https://trip-canvas.example.com"
