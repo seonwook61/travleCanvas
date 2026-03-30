@@ -36,14 +36,36 @@
 - `/api/health` 응답 확인
 - 앱 홈 화면이 실제로 뜨는지 확인
 
+### 5. real prod values and first prod deploy
+
+- `deploy/overlays/prod/configmap.yaml` 실제 운영 공개값 입력
+  - `NEXT_PUBLIC_SUPABASE_URL`
+  - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+  - `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`
+  - `NEXT_PUBLIC_SITE_URL`
+- cluster secret에 실제 운영 서버값 입력
+  - `SUPABASE_SERVICE_ROLE_KEY`
+  - `GOOGLE_MAPS_SERVER_API_KEY`
+- `deploy/overlays/prod/kustomization.yaml`의 `release-placeholder`를 실제 immutable 이미지 태그로 교체
+- `scripts/deploy/Apply-ProdSecrets.ps1` 실행
+- `scripts/deploy/Apply-ProdArgoApp.ps1` 실행
+- `trip-canvas-prod` Argo sync / health 확인
+- 실제 운영 도메인 기준으로 `/api/health` 및 홈 화면 확인
+
 ## Reminder rule
 
 이 프로젝트에서 배포 자동화 작업이 거의 끝나갈 때, 아래 질문을 다시 사용자에게 먼저 꺼냅니다.
 
 > 보류해둔 `staging actual env wiring / cluster wiring / Argo 적용` 단계로 넘어갈까요?
 
+운영 전환 단계가 가까워지면 아래 질문도 함께 다시 꺼냅니다.
+
+> 보류해둔 `real prod values 입력 / 첫 prod 배포` 단계로 넘어갈까요?
+
 ## Related docs
 
 - `docs/deploy/DEPLOYMENT.md`
 - `docs/deploy/STAGING_ENV_WIRING.md`
 - `docs/deploy/ENV_SOURCE_GUIDE.md`
+- `docs/deploy/PROD_ENV_WIRING.md`
+- `docs/deploy/PROD_LOCAL_SMOKE.md`
