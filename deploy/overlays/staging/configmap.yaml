@@ -4,10 +4,10 @@ metadata:
   name: trip-canvas-env
 data:
   # Replace with the staging Supabase project's public URL.
-  NEXT_PUBLIC_SUPABASE_URL: "https://your-staging-project.supabase.co"
+  NEXT_PUBLIC_SUPABASE_URL: "https://aptgyfpfngobhaykpcs.supabase.co"
   # Replace with the staging Supabase publishable / anon key.
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: "replace-me"
-  # Replace with the staging Google Maps browser key.
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: "sb_publishable_uyLwWVDuun69VV6gGJhG8A_HSox-PXM"
+  # Replace with the staging Google Maps browser key after applying referrer restrictions.
   NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: "replace-me"
   # Replace with the externally reachable staging host.
   NEXT_PUBLIC_SITE_URL: "https://trip-canvas-staging.example.com"
