@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Compass, MapPinned, Sparkles } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +16,8 @@ const CITY_CENTERS: Record<string, google.maps.LatLngLiteral> = {
   오사카: { lat: 34.6937, lng: 135.5023 },
   교토: { lat: 35.0116, lng: 135.7681 },
 };
+
+const PENDING_SAVE_STORAGE_KEY = "trip-canvas.pending-save-place";
 
 interface MapCanvasProps {
   error: string | null;
@@ -31,13 +34,20 @@ export function MapCanvas({
   searchSource,
   selectedCity,
 }: MapCanvasProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const mapRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
+  const pendingResumeHandledRef = useRef(false);
   const [mapReady, setMapReady] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
   const [runtimeConfig, setRuntimeConfig] = useState<RuntimePublicConfig | null>(null);
   const [configLoaded, setConfigLoaded] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [savingPlaceId, setSavingPlaceId] = useState<string | null>(null);
+  const [savedPlaceIds, setSavedPlaceIds] = useState<string[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -86,6 +96,126 @@ export function MapCanvas({
   const hasResults = results.length > 0;
   const resultsToRender = useMemo(() => results.slice(0, 4), [results]);
   const showFallbackState = configLoaded && (!hasGoogleMapsKey || Boolean(mapError));
+
+  async function persistPlace(place: NormalizedPlaceResult) {
+    setSavingPlaceId(place.providerPlaceId);
+    setSaveError(null);
+    setSaveMessage(null);
+
+    try {
+      const response = await fetch("/api/saved-places", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          providerPlaceId: place.providerPlaceId,
+          name: place.name,
+          formattedAddress: place.formattedAddress,
+          city: place.city,
+          region: place.region,
+          countryCode: place.countryCode,
+          latitude: place.latitude,
+          longitude: place.longitude,
+          status: "wishlist",
+          googleMapsUri: place.googleMapsUri ?? null,
+          photoUrl: place.photoUrl ?? null,
+          primaryCategory: place.primaryCategory ?? null,
+          note: null,
+        }),
+      });
+
+      if (response.status === 401) {
+        return {
+          outcome: "auth_required" as const,
+        };
+      }
+
+      if (response.status === 409) {
+        setSavedPlaceIds((current) =>
+          current.includes(place.providerPlaceId)
+            ? current
+            : [...current, place.providerPlaceId],
+        );
+        setSaveMessage(`${place.name}은(는) 이미 저장한 장소입니다. /saved에서 바로 확인해 보세요.`);
+        return {
+          outcome: "already_saved" as const,
+        };
+      }
+
+      if (!response.ok) {
+        throw new Error("장소 저장 요청에 실패했습니다.");
+      }
+
+      setSavedPlaceIds((current) =>
+        current.includes(place.providerPlaceId)
+          ? current
+          : [...current, place.providerPlaceId],
+      );
+      setSaveMessage(`${place.name}을(를) 가고 싶음 목록에 저장했습니다.`);
+      return {
+        outcome: "saved" as const,
+      };
+    } catch {
+      setSaveError("장소 저장에 실패했습니다. 잠시 후 다시 시도해 주세요.");
+      return {
+        outcome: "failed" as const,
+      };
+    } finally {
+      setSavingPlaceId(null);
+    }
+  }
+
+  async function handleSavePlace(place: NormalizedPlaceResult) {
+    const result = await persistPlace(place);
+
+    if (result?.outcome === "auth_required") {
+      if (typeof window !== "undefined") {
+        window.sessionStorage.setItem(PENDING_SAVE_STORAGE_KEY, JSON.stringify(place));
+      }
+
+      router.push(`/auth/sign-in?next=${encodeURIComponent("/?resumeSave=1")}`);
+    }
+  }
+
+  useEffect(() => {
+    if (!configLoaded || searchParams.get("resumeSave") !== "1" || pendingResumeHandledRef.current) {
+      return;
+    }
+
+    pendingResumeHandledRef.current = true;
+
+    const rawPendingPlace =
+      typeof window === "undefined"
+        ? null
+        : window.sessionStorage.getItem(PENDING_SAVE_STORAGE_KEY);
+
+    if (!rawPendingPlace) {
+      router.replace("/");
+      return;
+    }
+
+    async function resumePendingSave() {
+      try {
+        const pendingPlace = JSON.parse(rawPendingPlace) as NormalizedPlaceResult;
+        const result = await persistPlace(pendingPlace);
+
+        if (result?.outcome === "auth_required") {
+          setSaveError("로그인 이후 저장 흐름을 이어가지 못했습니다. 다시 시도해 주세요.");
+        }
+      } catch {
+        setSaveError("로그인 이후 저장 흐름을 복구하지 못했습니다. 다시 시도해 주세요.");
+      } finally {
+        if (typeof window !== "undefined") {
+          window.sessionStorage.removeItem(PENDING_SAVE_STORAGE_KEY);
+        }
+
+        router.replace("/");
+      }
+    }
+
+    void resumePendingSave();
+  }, [configLoaded, router, searchParams]);
 
   useEffect(() => {
     let cancelled = false;
@@ -245,9 +375,15 @@ export function MapCanvas({
                 : "검색어 또는 주요 도시 버튼으로 일본 장소를 찾아보세요."}
           </div>
 
-          {error || mapError ? (
+          {error || mapError || saveError ? (
             <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-              {error ?? mapError}
+              {saveError ?? error ?? mapError}
+            </div>
+          ) : null}
+
+          {saveMessage ? (
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+              {saveMessage}
             </div>
           ) : null}
 
@@ -272,8 +408,19 @@ export function MapCanvas({
                   <Sparkles className="size-4 text-amber-500" />
                 </div>
                 <p className="mt-3 text-sm leading-6 text-slate-600">{place.formattedAddress}</p>
-                <Button variant="secondary" className="mt-4 w-full rounded-2xl">
-                  로그인 후 저장
+                <Button
+                  variant="secondary"
+                  className="mt-4 w-full rounded-2xl"
+                  disabled={savingPlaceId === place.providerPlaceId || savedPlaceIds.includes(place.providerPlaceId)}
+                  onClick={() => {
+                    void handleSavePlace(place);
+                  }}
+                >
+                  {savedPlaceIds.includes(place.providerPlaceId)
+                    ? "저장됨"
+                    : savingPlaceId === place.providerPlaceId
+                      ? "저장 중..."
+                      : "로그인 후 저장"}
                 </Button>
               </div>
             ))}

@@ -101,6 +101,13 @@ export async function POST(request: Request) {
       .select("*")
       .single();
 
+    if (error?.code === "23505") {
+      return NextResponse.json(
+        { error: "이미 저장한 장소입니다." },
+        { status: 409 },
+      );
+    }
+
     if (error || !data) {
       return NextResponse.json(
         { error: "장소 저장에 실패했습니다." },

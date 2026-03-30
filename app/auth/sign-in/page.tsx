@@ -8,16 +8,25 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-async function signInWithGoogle() {
+function normalizeNextPath(next: string | null) {
+  if (!next || !next.startsWith("/") || next.startsWith("//")) {
+    return "/";
+  }
+
+  return next;
+}
+
+async function signInWithGoogle(formData: FormData) {
   "use server";
 
+  const next = normalizeNextPath(formData.get("next")?.toString() ?? null);
   const headerStore = await headers();
   const origin = headerStore.get("origin") ?? "http://localhost:3000";
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: `${origin}/auth/callback`,
+      redirectTo: `${origin}/auth/callback?next=${encodeURIComponent(next)}`,
       queryParams: {
         access_type: "offline",
         prompt: "consent",
@@ -40,6 +49,9 @@ export default async function SignInPage({
   const resolvedSearchParams = (await searchParams) ?? {};
   const error =
     typeof resolvedSearchParams.error === "string" ? resolvedSearchParams.error : null;
+  const next = normalizeNextPath(
+    typeof resolvedSearchParams.next === "string" ? resolvedSearchParams.next : null,
+  );
 
   return (
     <main className="min-h-screen bg-[linear-gradient(180deg,#fffef8_0%,#eef6ff_100%)] px-4 py-10">
@@ -66,6 +78,7 @@ export default async function SignInPage({
           </CardHeader>
           <CardContent className="space-y-4">
             <form action={signInWithGoogle}>
+              <input type="hidden" name="next" value={next} />
               <Button type="submit" className="w-full rounded-2xl py-6 text-base">
                 <LogIn className="mr-2 size-4" />
                 Google로 계속하기

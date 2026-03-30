@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { ChevronRight, Heart, MapPinned, Route } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +29,7 @@ interface SearchResponse {
 }
 
 export function MapHomePage() {
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const [selectedCity, setSelectedCity] = useState("도쿄");
   const [results, setResults] = useState<NormalizedPlaceResult[]>([]);
@@ -153,7 +155,11 @@ export function MapHomePage() {
                 로그인 후 저장한 장소가 여기에 쌓이고, 이후 trip 생성과 공유의 출발점이 됩니다.
               </div>
 
-              <Button variant="ghost" className="w-full justify-between rounded-2xl">
+              <Button
+                variant="ghost"
+                className="w-full justify-between rounded-2xl"
+                onClick={() => router.push("/saved")}
+              >
                 저장 흐름 살펴보기
                 <ChevronRight className="size-4" />
               </Button>
