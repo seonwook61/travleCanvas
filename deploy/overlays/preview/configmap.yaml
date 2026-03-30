@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: trip-canvas-env
+data:
+  NEXT_PUBLIC_SUPABASE_URL: "https://aptgyfpfngobhaykpcs.supabase.co"
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: "sb_publishable_uyLwWVDuun69VV6gGJhG8A_HSox-PXM"
+  NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: "AIzaSyD6o7vxvjUIzuzV0NQUIMDtRgMyNJoYkPg"
+  NEXT_PUBLIC_SITE_URL: "https://preview.trip-canvas.invalid"

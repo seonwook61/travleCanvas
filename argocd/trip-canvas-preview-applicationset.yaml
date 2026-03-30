@@ -1,0 +1,48 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: trip-canvas-preview
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions:
+    - missingkey=error
+  generators:
+    - pullRequest:
+        requeueAfterSeconds: 300
+        github:
+          owner: seonwook61
+          repo: travleCanvas
+          tokenRef:
+            secretName: github-pr-generator-token
+            key: token
+  template:
+    metadata:
+      name: trip-canvas-pr-{{ .number }}
+      labels:
+        app.kubernetes.io/name: trip-canvas
+        app.kubernetes.io/component: preview
+        app.kubernetes.io/part-of: trip-canvas
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/seonwook61/travleCanvas.git
+        targetRevision: "{{ .head_sha }}"
+        path: deploy/overlays/preview
+        kustomize:
+          nameSuffix: "-pr-{{ .number }}"
+          commonLabels:
+            app.kubernetes.io/instance: trip-canvas-pr-{{ .number }}
+            app.kubernetes.io/managed-by: argocd-preview
+          images:
+            - ghcr.io/seonwook61/travlecanvas:pr-{{ .number }}-{{ .head_sha }}
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: trip-canvas-preview
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - PruneLast=true

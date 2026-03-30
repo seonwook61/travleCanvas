@@ -13,8 +13,10 @@
 - `deploy/base`
 - `deploy/overlays/staging`
 - `deploy/overlays/prod`
+- `deploy/overlays/preview`
 - `argocd/trip-canvas-staging.yaml`
 - `argocd/trip-canvas-prod.yaml`
+- `argocd/trip-canvas-preview-applicationset.yaml`
 
 ## 아직 사람이 채워야 하는 값
 
@@ -49,3 +51,4 @@
 - `docs/deploy/DEFERRED_NEXT_STEPS.md`
 - `docs/deploy/LOCAL_INGRESS.md`
 - `docs/deploy/PROD_ENV_WIRING.md`
+- `docs/deploy/PR_PREVIEW_ENV.md`

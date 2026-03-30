@@ -17,6 +17,17 @@ Required values:
 - `NEXT_PUBLIC_SITE_URL`
 - `release-placeholder` image tag -> real release tag
 
+## First prod deploy gate
+
+Do not apply `prod` until all of the following are true:
+
+- A separate production Supabase project exists
+- A separate production Google Maps browser key exists
+- A separate production Google Maps server key exists
+- A real production hostname replaces `trip-canvas-prod.example.com`
+- `deploy/overlays/prod/kustomization.yaml` uses a real immutable image tag instead of `release-placeholder`
+- `trip-canvas-prod` namespace secrets are created with `Apply-ProdSecrets.ps1`
+
 ## Secrets
 
 Create production secrets separately from staging:
