@@ -46,6 +46,7 @@
 
 - `docs/deploy/STAGING_ENV_WIRING.md`
 - `docs/deploy/ENV_SOURCE_GUIDE.md`
+- `docs/deploy/GOOGLE_OAUTH_SETUP.md`
 - `docs/deploy/DEFERRED_NEXT_STEPS.md`
 - `docs/deploy/LOCAL_INGRESS.md`
 - `docs/deploy/PROD_ENV_WIRING.md`
