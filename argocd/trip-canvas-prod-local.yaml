@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: trip-canvas-prod-local
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/seonwook61/travleCanvas.git
+    targetRevision: codex/chore/prod-local-smoke
+    path: deploy/overlays/prod-local
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: trip-canvas-prod-local
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
