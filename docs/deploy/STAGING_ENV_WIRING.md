@@ -33,6 +33,8 @@ Secret `trip-canvas-secrets`
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `GOOGLE_MAPS_SERVER_API_KEY`
 
+이 secret은 Git 리소스로 sync하지 않고 cluster에서 별도로 생성한다.
+
 ## 5. Argo CD
 
 적용 대상 manifest:

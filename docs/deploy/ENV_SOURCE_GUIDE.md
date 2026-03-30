@@ -61,6 +61,12 @@
 - 권장 권한: `read:packages`
 - 용도: Kubernetes가 `ghcr.io/seonwook61/travlecanvas` 이미지를 pull할 수 있게 함
 
+## Secret 관리 원칙
+
+- `trip-canvas-secrets`는 Git에 실제 값을 커밋하지 않음
+- staging / production secret은 cluster에서 `kubectl create secret generic ...`로 생성하거나 외부 secret manager를 사용
+- Argo CD가 실제 secret을 `replace-me`로 되돌리지 않도록 overlay `kustomization.yaml`에서 secret resource를 제외
+
 ## 환경 분리 원칙
 
 - staging과 production은 Supabase 프로젝트를 분리

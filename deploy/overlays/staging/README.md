@@ -24,6 +24,9 @@
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `GOOGLE_MAPS_SERVER_API_KEY`
 
+`trip-canvas-secrets`는 Git에 커밋된 manifest로 관리하지 않습니다.
+cluster에서 out-of-band로 생성하거나 별도 secret management를 사용합니다.
+
 ## GHCR image pull secret
 
 이 overlay는 `Deployment.spec.template.spec.imagePullSecrets`에 `ghcr-credentials`를 기대합니다.
@@ -53,3 +56,4 @@ kubectl create secret generic trip-canvas-secrets `
 - production 키를 staging에 넣지 않습니다.
 - 실제 host가 정해지기 전에는 `NEXT_PUBLIC_SITE_URL`과 ingress host를 같이 수정합니다.
 - `configmap.local.yaml`, `secret.local.yaml`는 로컬 테스트용으로만 두고 Git에는 올리지 않습니다.
+- Argo CD가 실제 secret을 덮어쓰지 않도록 `kustomization.yaml`에는 secret resource를 포함하지 않습니다.

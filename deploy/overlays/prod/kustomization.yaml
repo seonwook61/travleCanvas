@@ -7,7 +7,6 @@ resources:
   - ../../base
   - namespace.yaml
   - configmap.yaml
-  - secret.yaml
   - ingress.yaml
 
 images:
