@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { isGoogleMapsBrowserConfigured, loadGoogleMapsLibraries } from "@/lib/google-maps/load-script";
+import type { RuntimePublicConfig } from "@/lib/runtime/public-config";
 import type { NormalizedPlaceResult } from "@/lib/types/domain";
 
 const CITY_CENTERS: Record<string, google.maps.LatLngLiteral> = {
@@ -35,22 +36,68 @@ export function MapCanvas({
   const markersRef = useRef<google.maps.Marker[]>([]);
   const [mapReady, setMapReady] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
+  const [runtimeConfig, setRuntimeConfig] = useState<RuntimePublicConfig | null>(null);
+  const [configLoaded, setConfigLoaded] = useState(false);
 
-  const hasGoogleMapsKey = isGoogleMapsBrowserConfigured();
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadRuntimeConfig() {
+      try {
+        const response = await fetch("/api/runtime-config", {
+          cache: "no-store",
+          method: "GET",
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to load runtime config");
+        }
+
+        const payload = (await response.json()) as RuntimePublicConfig;
+
+        if (!cancelled) {
+          setRuntimeConfig(payload);
+        }
+      } catch {
+        if (!cancelled) {
+          setRuntimeConfig({
+            googleMapsClientKey: null,
+            siteUrl: null,
+            supabaseAnonKey: null,
+            supabaseUrl: null,
+          });
+        }
+      } finally {
+        if (!cancelled) {
+          setConfigLoaded(true);
+        }
+      }
+    }
+
+    void loadRuntimeConfig();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const googleMapsClientKey = runtimeConfig?.googleMapsClientKey ?? null;
+  const hasGoogleMapsKey = isGoogleMapsBrowserConfigured(googleMapsClientKey);
   const hasResults = results.length > 0;
   const resultsToRender = useMemo(() => results.slice(0, 4), [results]);
+  const showFallbackState = configLoaded && (!hasGoogleMapsKey || Boolean(mapError));
 
   useEffect(() => {
     let cancelled = false;
 
     async function renderMap() {
-      if (!mapRef.current || !hasGoogleMapsKey) {
+      if (!mapRef.current || !configLoaded || !hasGoogleMapsKey) {
         setMapReady(false);
         return;
       }
 
       try {
-        const libraries = await loadGoogleMapsLibraries();
+        const libraries = await loadGoogleMapsLibraries(googleMapsClientKey);
 
         if (!libraries || !mapRef.current || cancelled) {
           return;
@@ -112,7 +159,7 @@ export function MapCanvas({
     return () => {
       cancelled = true;
     };
-  }, [hasGoogleMapsKey, results, selectedCity]);
+  }, [configLoaded, googleMapsClientKey, hasGoogleMapsKey, results, selectedCity]);
 
   return (
     <Card className="h-full min-h-[420px] overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(125,211,252,0.35),_transparent_40%),linear-gradient(180deg,#f8fafc_0%,#eef6ff_100%)]">
@@ -129,7 +176,28 @@ export function MapCanvas({
       </CardHeader>
       <CardContent className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="min-h-[360px] overflow-hidden rounded-[28px] border border-white/70 bg-white/80">
-          {hasGoogleMapsKey ? (
+          {!configLoaded ? (
+            <div className="flex h-full min-h-[360px] flex-col justify-between bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.25),_transparent_40%),linear-gradient(180deg,#f8fafc_0%,#eef6ff_100%)] p-6">
+              <div className="flex items-center gap-2 text-sm font-medium text-sky-700">
+                <Compass className="size-4" />
+                {selectedCity} 지도 설정 불러오는 중
+              </div>
+              <div className="rounded-[24px] border border-dashed border-sky-200 bg-white/85 p-5 text-sm leading-7 text-slate-600">
+                공개 런타임 설정을 불러오는 중입니다. 잠시 후 실제 지도 또는 fallback
+                상태가 자동으로 표시됩니다.
+              </div>
+              <div className="grid gap-3 sm:grid-cols-3">
+                {Object.keys(CITY_CENTERS).map((city) => (
+                  <div
+                    key={city}
+                    className="rounded-2xl bg-white/90 px-4 py-3 text-sm font-medium text-slate-700 shadow-sm"
+                  >
+                    {city}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : !showFallbackState ? (
             <div ref={mapRef} className="h-full min-h-[360px] w-full" />
           ) : (
             <div className="flex h-full min-h-[360px] flex-col justify-between bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.25),_transparent_40%),linear-gradient(180deg,#f8fafc_0%,#eef6ff_100%)] p-6">
@@ -138,9 +206,9 @@ export function MapCanvas({
                 {selectedCity} 중심 fallback 지도
               </div>
               <div className="rounded-[24px] border border-dashed border-sky-200 bg-white/85 p-5 text-sm leading-7 text-slate-600">
-                브라우저용 Google Maps 키를 넣으면 실제 지도가 여기에 표시됩니다. 지금은
-                검색 결과와 quick city 흐름을 확인할 수 있도록 안전한 fallback 상태를
-                제공합니다.
+                {mapError
+                  ? `${mapError} 브라우저 키 제한과 현재 접속 호스트를 함께 확인해 주세요.`
+                  : "브라우저용 Google Maps 키를 런타임 설정으로 불러오지 못해 fallback 상태로 표시합니다. 지금은 검색 결과와 quick city 흐름을 확인할 수 있도록 안전한 fallback 상태를 제공합니다."}
               </div>
               <div className="grid gap-3 sm:grid-cols-3">
                 {Object.keys(CITY_CENTERS).map((city) => (
@@ -221,7 +289,9 @@ export function MapCanvas({
           <div className="text-xs leading-6 text-slate-500">
             {mapReady
               ? "실제 지도 위에 결과를 렌더링 중입니다."
-              : "지도 키가 없거나 fallback 모드여도 탐색 흐름은 그대로 확인할 수 있습니다."}
+              : configLoaded
+                ? "지도 키가 없거나 fallback 모드여도 탐색 흐름은 그대로 확인할 수 있습니다."
+                : "공개 런타임 설정을 먼저 불러오는 중입니다."}
           </div>
         </div>
       </CardContent>
