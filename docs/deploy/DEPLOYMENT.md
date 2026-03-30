@@ -37,8 +37,15 @@
 - `ghcr-credentials` imagePullSecret 생성
 - `trip-canvas-secrets`의 실제 staging 값 주입
 
+## 추가 운영 메모
+
+- Docker Desktop local cluster에서 `Ingress` health를 안정적으로 보려면 `ingress-nginx`를 설치합니다.
+- production은 `trip-canvas-prod` namespace와 별도 secret으로 운영합니다.
+
 ## 운영 참고 문서
 
 - `docs/deploy/STAGING_ENV_WIRING.md`
 - `docs/deploy/ENV_SOURCE_GUIDE.md`
 - `docs/deploy/DEFERRED_NEXT_STEPS.md`
+- `docs/deploy/LOCAL_INGRESS.md`
+- `docs/deploy/PROD_ENV_WIRING.md`
