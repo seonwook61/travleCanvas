@@ -11,7 +11,7 @@ resources:
 
 images:
   - name: ghcr.io/seonwook61/travlecanvas
-    newTag: main
+    newTag: 90626b1
 
 patches:
   - target:
